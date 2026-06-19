@@ -1,11 +1,12 @@
 (function (root, factory) {
-  const api = factory(root);
+  var api = factory(root);
   if (typeof module === "object" && module.exports) {
     module.exports = api;
   }
   root.XuatKhoApp = api;
-})(typeof window !== "undefined" ? window : globalThis, function (root) {
-  const DEFAULT_SAMPLE = [
+})(typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : this, function (root) {
+  var DEFAULT_SELLER = "Phan Ngọc Cường";
+  var DEFAULT_SAMPLE = [
     "Nhà thuốc quang trung",
     "Gialai",
     "Glutathion 500mg 10h giá 450k km 8h",
@@ -20,7 +21,7 @@
     "Đông trùng hạ thảo ( vĩ 50v) 5h giá 225k km 4h",
   ].join("\n");
 
-  const UNIT_MAP = {
+  var UNIT_MAP = {
     h: "Hộp",
     hop: "Hộp",
     "hộp": "Hộp",
@@ -34,53 +35,123 @@
     "lốc": "Lốc",
   };
 
+  var ACCENTED = {
+    à: "a",
+    á: "a",
+    ạ: "a",
+    ả: "a",
+    ã: "a",
+    â: "a",
+    ầ: "a",
+    ấ: "a",
+    ậ: "a",
+    ẩ: "a",
+    ẫ: "a",
+    ă: "a",
+    ằ: "a",
+    ắ: "a",
+    ặ: "a",
+    ẳ: "a",
+    ẵ: "a",
+    è: "e",
+    é: "e",
+    ẹ: "e",
+    ẻ: "e",
+    ẽ: "e",
+    ê: "e",
+    ề: "e",
+    ế: "e",
+    ệ: "e",
+    ể: "e",
+    ễ: "e",
+    ì: "i",
+    í: "i",
+    ị: "i",
+    ỉ: "i",
+    ĩ: "i",
+    ò: "o",
+    ó: "o",
+    ọ: "o",
+    ỏ: "o",
+    õ: "o",
+    ô: "o",
+    ồ: "o",
+    ố: "o",
+    ộ: "o",
+    ổ: "o",
+    ỗ: "o",
+    ơ: "o",
+    ờ: "o",
+    ớ: "o",
+    ợ: "o",
+    ở: "o",
+    ỡ: "o",
+    ù: "u",
+    ú: "u",
+    ụ: "u",
+    ủ: "u",
+    ũ: "u",
+    ư: "u",
+    ừ: "u",
+    ứ: "u",
+    ự: "u",
+    ử: "u",
+    ữ: "u",
+    ỳ: "y",
+    ý: "y",
+    ỵ: "y",
+    ỷ: "y",
+    ỹ: "y",
+    đ: "d",
+  };
+
   function stripAccents(value) {
-    return value
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .toLowerCase();
+    var text = String(value || "").toLowerCase();
+    if (text.normalize) {
+      return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+    return text.replace(/[^\u0000-\u007E]/g, function (char) {
+      return ACCENTED[char] || char;
+    });
   }
 
   function normalizeUnit(unitSuffix) {
-    const raw = unitSuffix.trim().toLowerCase();
+    var raw = String(unitSuffix || "").trim().toLowerCase();
     return UNIT_MAP[raw] || UNIT_MAP[stripAccents(raw)] || "Cái";
   }
 
   function parseItem(itemText) {
-    const text = itemText.trim();
-    const standard = text.match(
-      /^(?<name>.*?)\s*(?<qty>\d+)\s*(?<unit>[\p{L}]+)\s+(?:giá\s+)?(?<price>\d+)\s*k(?:\s+(?<note>.*))?$/iu,
+    var text = String(itemText || "").trim();
+    var standard = text.match(
+      /^(.*?)\s*(\d+)\s*([A-Za-z\u00C0-\u1EF9\u0110\u0111]+)\s+(?:gi(?:a|\u00E1)\s+)?(\d+)\s*k(?:\s+(.*))?$/i
     );
 
-    if (standard?.groups) {
-      const qty = Number.parseInt(standard.groups.qty, 10);
-      const price = Number.parseInt(standard.groups.price, 10) * 1000;
+    if (standard) {
+      var qty = parseInt(standard[2], 10);
+      var price = parseInt(standard[4], 10) * 1000;
       return {
         source: itemText,
-        name: standard.groups.name.trim(),
-        unit: normalizeUnit(standard.groups.unit),
-        qty,
-        price,
+        name: standard[1].trim(),
+        unit: normalizeUnit(standard[3]),
+        qty: qty,
+        price: price,
         total: qty * price,
-        note: (standard.groups.note || "").trim(),
+        note: (standard[5] || "").trim(),
         parsed: true,
       };
     }
 
-    const noQty = text.match(
-      /^(?<name>.*?)\s+giá\s+(?<price>\d+)\s*k(?:\s+(?<note>.*))?$/iu,
-    );
-
-    if (noQty?.groups) {
-      const price = Number.parseInt(noQty.groups.price, 10) * 1000;
+    var noQty = text.match(/^(.*?)\s+gi(?:a|\u00E1)\s+(\d+)\s*k(?:\s+(.*))?$/i);
+    if (noQty) {
+      var fallbackPrice = parseInt(noQty[2], 10) * 1000;
       return {
         source: itemText,
-        name: noQty.groups.name.trim(),
+        name: noQty[1].trim(),
         unit: "Hộp",
         qty: 1,
-        price,
-        total: price,
-        note: (noQty.groups.note || "").trim(),
+        price: fallbackPrice,
+        total: fallbackPrice,
+        note: (noQty[3] || "").trim(),
         parsed: true,
         warning: "Không thấy số lượng, mặc định 1 Hộp.",
       };
@@ -100,50 +171,68 @@
   }
 
   function parseOrders(content) {
-    const blocks = content
+    var blocks = String(content || "")
       .replace(/\r\n/g, "\n")
-      .split(/\n\s*\n/g)
-      .map((block) => block.trim())
-      .filter(Boolean);
+      .split(/\n\s*\n/g);
+    var orders = [];
+    var warnings = [];
 
-    const orders = [];
-    const warnings = [];
-
-    blocks.forEach((block, blockIndex) => {
-      const lines = block
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      if (lines.length < 3) {
-        warnings.push(`Đơn ${blockIndex + 1}: thiếu tên khách, địa chỉ hoặc hàng.`);
-        return;
+    for (var blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
+      var block = blocks[blockIndex].trim();
+      if (!block) {
+        continue;
       }
 
-      const items = lines.slice(2).map(parseItem);
-      items.forEach((item, itemIndex) => {
-        if (item.warning) {
-          warnings.push(`Đơn ${blockIndex + 1}, dòng ${itemIndex + 1}: ${item.warning}`);
+      var rawLines = block.split("\n");
+      var lines = [];
+      for (var lineIndex = 0; lineIndex < rawLines.length; lineIndex += 1) {
+        var line = rawLines[lineIndex].trim();
+        if (line) {
+          lines.push(line);
         }
-      });
+      }
+
+      if (lines.length < 3) {
+        warnings.push("Đơn " + (blockIndex + 1) + ": thiếu tên khách, địa chỉ hoặc hàng.");
+        continue;
+      }
+
+      var items = [];
+      var total = 0;
+      for (var itemIndex = 2; itemIndex < lines.length; itemIndex += 1) {
+        var item = parseItem(lines[itemIndex]);
+        items.push(item);
+        total += Number(item.total) || 0;
+        if (item.warning) {
+          warnings.push(
+            "Đơn " + (blockIndex + 1) + ", dòng " + (itemIndex - 1) + ": " + item.warning
+          );
+        }
+      }
 
       orders.push({
         customer: lines[0],
         address: lines[1],
-        items,
-        total: items.reduce((sum, item) => sum + (Number(item.total) || 0), 0),
+        items: items,
+        total: total,
       });
-    });
+    }
 
-    return { orders, warnings };
+    return { orders: orders, warnings: warnings };
   }
 
   function money(value) {
-    return `${Number(value || 0).toLocaleString("vi-VN")}đ`;
+    var number = String(Math.round(Number(value || 0)));
+    var result = "";
+    while (number.length > 3) {
+      result = "." + number.slice(-3) + result;
+      number = number.slice(0, -3);
+    }
+    return number + result + "đ";
   }
 
   function htmlEscape(value) {
-    return String(value ?? "")
+    return String(value === null || typeof value === "undefined" ? "" : value)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -151,42 +240,47 @@
       .replace(/'/g, "&#039;");
   }
 
-  function toInputDate(date = new Date()) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+  function pad2(value) {
+    value = String(value);
+    return value.length < 2 ? "0" + value : value;
+  }
+
+  function toInputDate(date) {
+    date = date || new Date();
+    return date.getFullYear() + "-" + pad2(date.getMonth() + 1) + "-" + pad2(date.getDate());
   }
 
   function dateParts(dateValue) {
-    const [year, month, day] = dateValue.split("-");
+    var parts = String(dateValue || toInputDate()).split("-");
     return {
-      display: `${day}/${month}/${year}`,
-      filename: `${day}${month}${year}`,
+      display: parts[2] + "/" + parts[1] + "/" + parts[0],
+      filename: parts[2] + parts[1] + parts[0],
     };
   }
 
   function safeFilename(text) {
-    return text
+    return String(text || "")
       .replace(/[<>:"/\\|?*]+/g, "")
       .trim()
       .replace(/\s+/g, "_");
   }
 
   function workbookFilename(order, dateValue) {
-    return `Phieu_${safeFilename(order.customer)}_${dateParts(dateValue).filename}.xlsx`;
+    return "Phieu_" + safeFilename(order.customer) + "_" + dateParts(dateValue).filename + ".xlsx";
   }
 
-  function applyBorder(cell, style = "thin") {
+  function applyBorder(cell, style) {
+    style = style || "thin";
     cell.border = {
-      top: { style },
-      left: { style },
-      bottom: { style },
-      right: { style },
+      top: { style: style },
+      left: { style: style },
+      bottom: { style: style },
+      right: { style: style },
     };
   }
 
-  function styleCell(cell, options = {}) {
+  function styleCell(cell, options) {
+    options = options || {};
     if (options.alignment) {
       cell.alignment = options.alignment;
     }
@@ -194,7 +288,7 @@
       cell.font = options.font;
     }
     if (options.fill) {
-      const fillColor = options.fill.length === 6 ? `FF${options.fill}` : options.fill;
+      var fillColor = options.fill.length === 6 ? "FF" + options.fill : options.fill;
       cell.fill = {
         type: "pattern",
         pattern: "solid",
@@ -206,16 +300,22 @@
     }
   }
 
+  function writeRow(row, values) {
+    for (var index = 0; index < values.length; index += 1) {
+      row.getCell(index + 1).value = values[index];
+    }
+  }
+
   function buildWorkbook(order, dateValue, sellerName) {
     if (!root.ExcelJS) {
       throw new Error("Chưa tải được ExcelJS. Hãy kiểm tra kết nối mạng rồi thử lại.");
     }
 
-    const workbook = new root.ExcelJS.Workbook();
+    var workbook = new root.ExcelJS.Workbook();
     workbook.creator = "Xuat Kho Web";
     workbook.created = new Date();
 
-    const sheet = workbook.addWorksheet("PhieuXuatKho", {
+    var sheet = workbook.addWorksheet("PhieuXuatKho", {
       pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true },
     });
 
@@ -232,11 +332,11 @@
     sheet.mergeCells("A2:G2");
     sheet.mergeCells("A3:G3");
     sheet.getCell("A2").value = "PHIẾU XUẤT KHO BÁN HÀNG";
-    sheet.getCell("A3").value = `Ngày: ${dateParts(dateValue).display}`;
-    sheet.getCell("A4").value = `Tên khách hàng: ${order.customer}`;
-    sheet.getCell("A5").value = `Địa chỉ: ${order.address}`;
+    sheet.getCell("A3").value = "Ngày: " + dateParts(dateValue).display;
+    sheet.getCell("A4").value = "Tên khách hàng: " + order.customer;
+    sheet.getCell("A5").value = "Địa chỉ: " + order.address;
     sheet.getCell("A6").value = "SĐT: ";
-    sheet.getCell("A7").value = `NV bán hàng: ${sellerName || "Phan Ngọc Cường"}`;
+    sheet.getCell("A7").value = "NV bán hàng: " + (sellerName || DEFAULT_SELLER);
 
     styleCell(sheet.getCell("A2"), {
       font: { bold: true, size: 16 },
@@ -246,8 +346,8 @@
       alignment: { horizontal: "center", vertical: "middle" },
     });
 
-    const headerRow = sheet.getRow(9);
-    [
+    var headerRow = sheet.getRow(9);
+    writeRow(headerRow, [
       "STT",
       "TÊN HÀNG",
       "Đ.V TÍNH",
@@ -255,11 +355,9 @@
       "ĐƠN GIÁ",
       "THÀNH TIỀN",
       "GHI CHÚ",
-    ].forEach((value, index) => {
-      headerRow.getCell(index + 1).value = value;
-    });
+    ]);
     headerRow.height = 22;
-    headerRow.eachCell((cell) => {
+    headerRow.eachCell(function (cell) {
       styleCell(cell, {
         font: { bold: true },
         fill: "D9EAD3",
@@ -268,22 +366,21 @@
       applyBorder(cell);
     });
 
-    const startRow = 10;
-    order.items.forEach((item, index) => {
-      const row = sheet.getRow(startRow + index);
-      [
-        index + 1,
+    var startRow = 10;
+    for (var itemIndex = 0; itemIndex < order.items.length; itemIndex += 1) {
+      var item = order.items[itemIndex];
+      var row = sheet.getRow(startRow + itemIndex);
+      writeRow(row, [
+        itemIndex + 1,
         item.name,
         item.unit,
         item.qty,
         item.price,
         item.total,
         item.note,
-      ].forEach((value, colIndex) => {
-        row.getCell(colIndex + 1).value = value;
-      });
-      row.eachCell((cell, colNumber) => {
-        const isMoney = colNumber === 5 || colNumber === 6;
+      ]);
+      row.eachCell(function (cell, colNumber) {
+        var isMoney = colNumber === 5 || colNumber === 6;
         styleCell(cell, {
           alignment: {
             horizontal: colNumber === 2 ? "left" : "center",
@@ -294,59 +391,66 @@
         });
         applyBorder(cell);
       });
-    });
+    }
 
-    const totalRowNumber = startRow + order.items.length;
-    sheet.mergeCells(`A${totalRowNumber}:E${totalRowNumber}`);
-    sheet.getCell(`A${totalRowNumber}`).value = "CỘNG:";
-    sheet.getCell(`F${totalRowNumber}`).value = order.total;
-    styleCell(sheet.getCell(`A${totalRowNumber}`), {
+    var totalRowNumber = startRow + order.items.length;
+    sheet.mergeCells("A" + totalRowNumber + ":E" + totalRowNumber);
+    sheet.getCell("A" + totalRowNumber).value = "CỘNG:";
+    sheet.getCell("F" + totalRowNumber).value = order.total;
+    styleCell(sheet.getCell("A" + totalRowNumber), {
       font: { bold: true },
       alignment: { horizontal: "right", vertical: "middle" },
     });
-    styleCell(sheet.getCell(`F${totalRowNumber}`), {
+    styleCell(sheet.getCell("F" + totalRowNumber), {
       font: { bold: true },
       alignment: { horizontal: "center", vertical: "middle" },
       numFmt: "#,##0",
     });
-    for (let col = 1; col <= 7; col += 1) {
+    for (var col = 1; col <= 7; col += 1) {
       applyBorder(sheet.getCell(totalRowNumber, col));
     }
 
-    const signatureRow = totalRowNumber + 2;
-    const signaturePairs = [
+    var signatureRow = totalRowNumber + 2;
+    var signaturePairs = [
       ["A", "B", "Người mua hàng"],
       ["C", "D", "Thủ kho"],
       ["E", "F", "Kế toán"],
     ];
-    signaturePairs.forEach(([startCol, endCol, label]) => {
-      sheet.mergeCells(`${startCol}${signatureRow}:${endCol}${signatureRow}`);
-      sheet.mergeCells(`${startCol}${signatureRow + 1}:${endCol}${signatureRow + 1}`);
-      sheet.getCell(`${startCol}${signatureRow}`).value = label;
-      sheet.getCell(`${startCol}${signatureRow + 1}`).value = "(ký, họ tên)";
-      styleCell(sheet.getCell(`${startCol}${signatureRow}`), {
+    for (var pairIndex = 0; pairIndex < signaturePairs.length; pairIndex += 1) {
+      var pair = signaturePairs[pairIndex];
+      sheet.mergeCells(pair[0] + signatureRow + ":" + pair[1] + signatureRow);
+      sheet.mergeCells(pair[0] + (signatureRow + 1) + ":" + pair[1] + (signatureRow + 1));
+      sheet.getCell(pair[0] + signatureRow).value = pair[2];
+      sheet.getCell(pair[0] + (signatureRow + 1)).value = "(ký, họ tên)";
+      styleCell(sheet.getCell(pair[0] + signatureRow), {
         font: { bold: true, italic: true },
         alignment: { horizontal: "center" },
       });
-      styleCell(sheet.getCell(`${startCol}${signatureRow + 1}`), {
+      styleCell(sheet.getCell(pair[0] + (signatureRow + 1)), {
         font: { italic: true },
         alignment: { horizontal: "center" },
       });
-    });
+    }
 
     sheet.views = [{ state: "frozen", ySplit: 9 }];
     return workbook;
   }
 
   function renderPreview(parsed) {
-    const preview = document.getElementById("preview");
-    const orderCount = document.getElementById("orderCount");
-    const grandTotal = document.getElementById("grandTotal");
-    const parseState = document.getElementById("parseState");
+    var preview = document.getElementById("preview");
+    var orderCount = document.getElementById("orderCount");
+    var grandTotal = document.getElementById("grandTotal");
+    var parseState = document.getElementById("parseState");
+    var orders = parsed.orders;
+    var warnings = parsed.warnings;
+    var total = 0;
+    var html = "";
 
-    const { orders, warnings } = parsed;
-    const total = orders.reduce((sum, order) => sum + order.total, 0);
-    orderCount.textContent = `${orders.length} đơn`;
+    for (var orderIndex = 0; orderIndex < orders.length; orderIndex += 1) {
+      total += orders[orderIndex].total;
+    }
+
+    orderCount.textContent = orders.length + " đơn";
     grandTotal.textContent = money(total);
     parseState.textContent = orders.length ? "Đã parse dữ liệu" : "Chưa có dữ liệu";
 
@@ -357,112 +461,128 @@
     }
 
     preview.className = "preview-scroll";
-    const warningHtml = warnings.length
-      ? `<ul class="warning-list">${warnings.map((warning) => `<li>${htmlEscape(warning)}</li>`).join("")}</ul>`
-      : "";
+    if (warnings.length) {
+      html += '<ul class="warning-list">';
+      for (var warningIndex = 0; warningIndex < warnings.length; warningIndex += 1) {
+        html += "<li>" + htmlEscape(warnings[warningIndex]) + "</li>";
+      }
+      html += "</ul>";
+    }
 
-    preview.innerHTML = `${warningHtml}${orders
-      .map(
-        (order) => `
-          <article class="order-preview">
-            <div class="order-header">
-              <div>
-                <strong>${htmlEscape(order.customer)}</strong>
-                <span>${htmlEscape(order.address)}</span>
-              </div>
-              <div class="order-total">${money(order.total)}</div>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>STT</th>
-                  <th>Tên hàng</th>
-                  <th>Đ.V</th>
-                  <th class="numeric">SL</th>
-                  <th class="numeric">Đơn giá</th>
-                  <th class="numeric">Thành tiền</th>
-                  <th>Ghi chú</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${order.items
-                  .map(
-                    (item, index) => `
-                      <tr>
-                        <td>${index + 1}</td>
-                        <td>${htmlEscape(item.name)}</td>
-                        <td>${htmlEscape(item.unit)}</td>
-                        <td class="numeric">${htmlEscape(item.qty)}</td>
-                        <td class="numeric">${item.price === "" ? "" : money(item.price)}</td>
-                        <td class="numeric">${money(item.total)}</td>
-                        <td>${htmlEscape(item.note)}</td>
-                      </tr>
-                    `,
-                  )
-                  .join("")}
-              </tbody>
-            </table>
-          </article>
-        `,
-      )
-      .join("")}`;
+    for (var i = 0; i < orders.length; i += 1) {
+      var order = orders[i];
+      html += '<article class="order-preview">';
+      html += '<div class="order-header"><div>';
+      html += "<strong>" + htmlEscape(order.customer) + "</strong>";
+      html += "<span>" + htmlEscape(order.address) + "</span>";
+      html += '</div><div class="order-total">' + money(order.total) + "</div></div>";
+      html += "<table><thead><tr>";
+      html += "<th>STT</th><th>Tên hàng</th><th>Đ.V</th>";
+      html += '<th class="numeric">SL</th><th class="numeric">Đơn giá</th>';
+      html += '<th class="numeric">Thành tiền</th><th>Ghi chú</th>';
+      html += "</tr></thead><tbody>";
+
+      for (var j = 0; j < order.items.length; j += 1) {
+        var item = order.items[j];
+        html += "<tr>";
+        html += "<td>" + (j + 1) + "</td>";
+        html += "<td>" + htmlEscape(item.name) + "</td>";
+        html += "<td>" + htmlEscape(item.unit) + "</td>";
+        html += '<td class="numeric">' + htmlEscape(item.qty) + "</td>";
+        html += '<td class="numeric">' + (item.price === "" ? "" : money(item.price)) + "</td>";
+        html += '<td class="numeric">' + money(item.total) + "</td>";
+        html += "<td>" + htmlEscape(item.note) + "</td>";
+        html += "</tr>";
+      }
+
+      html += "</tbody></table></article>";
+    }
+
+    preview.innerHTML = html;
   }
 
-  async function saveOrders(parsed, dateValue, sellerName) {
-    const { orders } = parsed;
+  function saveOrders(parsed, dateValue, sellerName) {
+    var orders = parsed.orders;
     if (!orders.length) {
-      throw new Error("Chưa có đơn hợp lệ để tạo file.");
+      return Promise.reject(new Error("Chưa có đơn hợp lệ để tạo file."));
     }
 
     if (orders.length === 1) {
-      const workbook = buildWorkbook(orders[0], dateValue, sellerName);
-      const buffer = await workbook.xlsx.writeBuffer();
-      downloadBlob(
-        new Blob([buffer], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        }),
-        workbookFilename(orders[0], dateValue),
-      );
-      return;
+      var workbook = buildWorkbook(orders[0], dateValue, sellerName);
+      return workbook.xlsx.writeBuffer().then(function (buffer) {
+        downloadBlob(
+          new Blob([buffer], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          }),
+          workbookFilename(orders[0], dateValue)
+        );
+      });
     }
 
     if (!root.JSZip) {
-      throw new Error("Chưa tải được JSZip. Hãy kiểm tra kết nối mạng rồi thử lại.");
+      return Promise.reject(new Error("Chưa tải được JSZip. Hãy kiểm tra kết nối mạng rồi thử lại."));
     }
 
-    const zip = new root.JSZip();
-    for (const order of orders) {
-      const workbook = buildWorkbook(order, dateValue, sellerName);
-      const buffer = await workbook.xlsx.writeBuffer();
-      zip.file(workbookFilename(order, dateValue), buffer);
+    var zip = new root.JSZip();
+    var chain = Promise.resolve();
+    for (var orderIndex = 0; orderIndex < orders.length; orderIndex += 1) {
+      (function (order) {
+        chain = chain.then(function () {
+          var workbook = buildWorkbook(order, dateValue, sellerName);
+          return workbook.xlsx.writeBuffer().then(function (buffer) {
+            zip.file(workbookFilename(order, dateValue), buffer);
+          });
+        });
+      })(orders[orderIndex]);
     }
-    const blob = await zip.generateAsync({ type: "blob" });
-    downloadBlob(blob, `Phieu_Xuat_Kho_${dateParts(dateValue).filename}.zip`);
+
+    return chain.then(function () {
+      return zip.generateAsync({ type: "blob" });
+    }).then(function (blob) {
+      downloadBlob(blob, "Phieu_Xuat_Kho_" + dateParts(dateValue).filename + ".zip");
+    });
   }
 
   function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
+    if (root.saveAs) {
+      root.saveAs(blob, filename);
+      return;
+    }
+
+    var urlApi = root.URL || root.webkitURL;
+    if (!urlApi || !urlApi.createObjectURL) {
+      throw new Error("Trình duyệt này chưa hỗ trợ tải file Blob.");
+    }
+
+    var url = urlApi.createObjectURL(blob);
+    var anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = filename;
-    document.body.append(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
+    document.body.appendChild(anchor);
+
+    if (typeof anchor.click === "function") {
+      anchor.click();
+    } else {
+      root.open(url, "_blank");
+    }
+
+    document.body.removeChild(anchor);
+    setTimeout(function () {
+      urlApi.revokeObjectURL(url);
+    }, 1000);
   }
 
   function init() {
-    const orderInput = document.getElementById("orderInput");
-    const dateInput = document.getElementById("dateInput");
-    const sellerInput = document.getElementById("sellerInput");
-    const sampleButton = document.getElementById("sampleButton");
-    const clearButton = document.getElementById("clearButton");
-    const downloadButton = document.getElementById("downloadButton");
-    const statusMessage = document.getElementById("statusMessage");
+    var orderInput = document.getElementById("orderInput");
+    var dateInput = document.getElementById("dateInput");
+    var sellerInput = document.getElementById("sellerInput");
+    var sampleButton = document.getElementById("sampleButton");
+    var clearButton = document.getElementById("clearButton");
+    var downloadButton = document.getElementById("downloadButton");
+    var statusMessage = document.getElementById("statusMessage");
 
     dateInput.value = toInputDate();
-
-    let parsed = parseOrders(orderInput.value);
+    var parsed = parseOrders(orderInput.value);
     renderPreview(parsed);
 
     function refresh() {
@@ -473,30 +593,32 @@
     }
 
     orderInput.addEventListener("input", refresh);
-    sampleButton.addEventListener("click", () => {
+    sampleButton.addEventListener("click", function () {
       orderInput.value = DEFAULT_SAMPLE;
       refresh();
       orderInput.focus();
     });
-    clearButton.addEventListener("click", () => {
+    clearButton.addEventListener("click", function () {
       orderInput.value = "";
       refresh();
       orderInput.focus();
     });
-    downloadButton.addEventListener("click", async () => {
+    downloadButton.addEventListener("click", function () {
       statusMessage.textContent = "Đang tạo file...";
       statusMessage.className = "status";
       downloadButton.disabled = true;
-      try {
-        await saveOrders(parsed, dateInput.value, sellerInput.value.trim());
-        statusMessage.textContent =
-          parsed.orders.length === 1 ? "Đã tạo file XLSX." : "Đã tạo file ZIP.";
-      } catch (error) {
-        statusMessage.textContent = error.message;
-        statusMessage.className = "status error";
-      } finally {
-        downloadButton.disabled = false;
-      }
+      saveOrders(parsed, dateInput.value, sellerInput.value.trim())
+        .then(function () {
+          statusMessage.textContent =
+            parsed.orders.length === 1 ? "Đã tạo file XLSX." : "Đã tạo file ZIP.";
+        })
+        .catch(function (error) {
+          statusMessage.textContent = error.message;
+          statusMessage.className = "status error";
+        })
+        .then(function () {
+          downloadButton.disabled = false;
+        });
     });
   }
 
@@ -505,13 +627,13 @@
   }
 
   return {
-    DEFAULT_SAMPLE,
-    parseItem,
-    parseOrders,
-    normalizeUnit,
-    dateParts,
-    safeFilename,
-    workbookFilename,
-    buildWorkbook,
+    DEFAULT_SAMPLE: DEFAULT_SAMPLE,
+    parseItem: parseItem,
+    parseOrders: parseOrders,
+    normalizeUnit: normalizeUnit,
+    dateParts: dateParts,
+    safeFilename: safeFilename,
+    workbookFilename: workbookFilename,
+    buildWorkbook: buildWorkbook,
   };
 });
