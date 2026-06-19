@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tạo phiếu xuất kho XLSX</title>
+    <meta
+      name="description"
+      content="Tạo phiếu xuất kho bán hàng từ nội dung đơn hàng và tải file XLSX ngay trên trình duyệt."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-labelledby="app-title">
+        <div class="masthead">
+          <div>
+            <p class="eyebrow">Xuat kho web</p>
+            <h1 id="app-title">Tạo phiếu xuất kho</h1>
+          </div>
+          <div class="totals" aria-live="polite">
+            <span id="orderCount">0 đơn</span>
+            <strong id="grandTotal">0đ</strong>
+          </div>
+        </div>
+
+        <div class="tool-grid">
+          <section class="input-panel" aria-label="Nhập đơn hàng">
+            <div class="panel-heading">
+              <h2>Dữ liệu đơn</h2>
+              <button class="ghost-button" type="button" id="sampleButton">Mẫu test</button>
+            </div>
+
+            <textarea
+              id="orderInput"
+              spellcheck="false"
+              aria-label="Nội dung đơn hàng"
+              placeholder="Tên khách hàng&#10;Địa chỉ&#10;Tên hàng 10h giá 180k km 8h&#10;&#10;Tên khách khác&#10;Địa chỉ&#10;Tên hàng 5h 120k"
+            ></textarea>
+
+            <div class="controls">
+              <label>
+                <span>Ngày phiếu</span>
+                <input id="dateInput" type="date" />
+              </label>
+              <label>
+                <span>NV bán hàng</span>
+                <input id="sellerInput" type="text" value="Phan Ngọc Cường" />
+              </label>
+            </div>
+
+            <div class="actions">
+              <button class="primary-button" type="button" id="downloadButton">
+                Tạo XLSX
+              </button>
+              <button class="secondary-button" type="button" id="clearButton">Xóa</button>
+            </div>
+            <p id="statusMessage" class="status" role="status"></p>
+          </section>
+
+          <section class="preview-panel" aria-label="Xem trước phiếu">
+            <div class="panel-heading">
+              <h2>Xem trước</h2>
+              <span id="parseState" class="parse-state">Chưa có dữ liệu</span>
+            </div>
+            <div id="preview" class="preview-empty">
+              Dán đơn hàng vào khung bên trái để xem bảng trước khi tải file.
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
